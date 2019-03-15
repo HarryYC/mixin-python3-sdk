@@ -223,6 +223,32 @@ class MIXIN_API:
         result_obj = r.json()
         return result_obj
 
+    """
+    generate Mixin Network GET http request for snapshot
+    """
+    def __genNetworkGetRequest_snapshots(self, path, body=None, auth_token=""):
+        if body is not None:
+            body = urlencode(body)
+        else:
+            body = ""
+
+
+        url = self.__genUrl(path+"?" + body)
+
+        if auth_token == "":
+            token = self.genGETJwtToken(path+"?" + body, "", str(uuid.uuid4()))
+            auth_token = token.decode('utf8')
+
+            r = requests.get(url, headers={"Authorization": "Bearer " + auth_token, 'Content-Type': 'application/json', 'Content-length': '0'})
+            result_obj = r.json()
+            snapshots_of_accoung = []
+            USDT_Snapshots = result_obj.get('data')
+            for singleSnapShot in USDT_Snapshots:
+                if "user_id" in singleSnapShot:
+                    snapshots_of_accoung.append(singleSnapShot)
+
+            return snapshots_of_accoung
+
 
     """
     generate Mixin Network POST http request
@@ -441,16 +467,24 @@ class MIXIN_API:
             "account_name": account_name,
             "account_tag": account_tag,
         }
-        print(body)
         return self.__genNetworkPostRequest('/addresses', body)
 
+    def createAddressEOS(self, asset_id, account_name, account_tag, label = ""):
 
+        body = {
+            "asset_id": asset_id,
+            "pin": self.genEncrypedPin().decode(),
+            "account_name": account_name,
+            "account_tag": account_tag,
+            "label": label,
+        }
+        return self.__genNetworkPostRequest('/addresses', body)
     """
     Delete an address by ID.
     """
     def delAddress(self, address_id):
 
-        encrypted_pin = self.genEncrypedPin()
+        encrypted_pin = self.genEncrypedPin().decode()
 
         body = {"pin": encrypted_pin}
 
@@ -461,7 +495,7 @@ class MIXIN_API:
     Read an address by ID.
     """
     def getAddress(self, address_id):
-        return self.__genNetworkGetRequest('/addresses' + address_id)
+        return self.__genNetworkGetRequest('/addresses/' + address_id)
 
     """
     Transfer of assets between Mixin Network users.
@@ -557,8 +591,10 @@ class MIXIN_API:
             "asset":asset_id,
             "order":order
         }
+        finalURL = "/network/snapshots?offset=%s&asset=%s&order=%s&limit=%d" % (offset, asset_id, order, limit)
 
-        return self.__genGetRequest('/network/snapshots', body)
+
+        return self.__genGetRequest(finalURL)
 
 
     """
@@ -566,3 +602,17 @@ class MIXIN_API:
     """
     def snapshot(self, snapshot_id):
         return self.__genGetRequest('/network/snapshots/' + snapshot_id)
+    """
+    Read this account snapshots of Mixin Network. Beaer token is required
+    """
+    def account_snapshots(self, offset, asset_id, order='DESC',limit=100):
+        # TODO: SET offset default(UTC TIME)
+        body = {
+            "limit":limit,
+            "offset":offset,
+            "asset":asset_id,
+            "order":order
+        }
+
+
+        return self.__genNetworkGetRequest_snapshots("/network/snapshots", body)
