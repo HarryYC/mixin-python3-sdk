@@ -87,8 +87,7 @@ class MIXIN_API:
         exp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
         encoded = jwt.encode({'uid':self.client_id, 'sid':self.pay_session_id,'iat':iat,'exp': exp, 'jti':jti,'sig':jwtSig}, self.private_key, algorithm='RS512')
         return encoded
-
-    def genEncrypedPin(self, iterString = None):
+    def genEncrypedPin_withPin(self, self_pay_pin, iterString = None):
         if self.keyForAES == "":
             privKeyObj = RSA.importKey(self.private_key)
 
@@ -135,9 +134,9 @@ class MIXIN_API:
             tsseven = chr(tsseven)
             iterStringByTS = tszero + tsone + tstwo + tsthree + tsfour + tsfive + tssix + tsseven
 
-            toEncryptContent = self.pay_pin + tsstring + iterStringByTS
+            toEncryptContent = self_pay_pin + tsstring + iterStringByTS
         else:
-            toEncryptContent = self.pay_pin + tsstring + iterString
+            toEncryptContent = self_pay_pin + tsstring + iterString
 
         lenOfToEncryptContent = len(toEncryptContent)
         toPadCount = 16 - lenOfToEncryptContent % 16
@@ -157,6 +156,9 @@ class MIXIN_API:
 
         return encrypted_pin
 
+
+    def genEncrypedPin(self, iterString = None):
+        return self.genEncrypedPin_withPin(self.pay_pin)
     """
     COMMON METHON
     """
@@ -389,23 +391,22 @@ class MIXIN_API:
     if auth_token is set, it create messenger user pin.
     """
     def updatePin(self, new_pin, old_pin, auth_token=""):
-        old_inside_pay_pin = self.pay_pin
-        self.pay_pin = new_pin
-        newEncrypedPin = self.genEncrypedPin()
         if old_pin == "":
+            newEncrypedPin = self.genEncrypedPin_withPin(new_pin)
             body = {
                 "old_pin": "",
                 "pin": newEncrypedPin.decode()
             }
         else:
+            oldEncryptedPin = self.genEncrypedPin_withPin(old_pin)
+            time.sleep(1)
+            newEncrypedPin = self.genEncrypedPin_withPin(new_pin)
 
-            self.pay_pin = old_pin
-            oldEncryptedPin = self.genEncrypedPin()
             body = {
                 "old_pin": oldEncryptedPin.decode(),
                 "pin": newEncrypedPin.decode()
             }
-        self.pay_pin = old_inside_pay_pin
+        print(body)
         return self.__genNetworkPostRequest('/pin/update', body, auth_token)
 
     """
@@ -413,8 +414,8 @@ class MIXIN_API:
     if auth_token is empty, it verify robot' pin.
     if auth_token is set, it verify messenger user pin.
     """
-    def verifyPin(self, auth_token=""):
-        enPin = self.genEncrypedPin()
+    def verifyPin(self, input_pin, auth_token=""):
+        enPin = self.genEncrypedPin_withPin(input_pin)
         body = {
             "pin": enPin.decode()
         }
@@ -458,11 +459,15 @@ class MIXIN_API:
     """
     Create an address for withdrawal, you can only withdraw through an existent address.
     """
-    def createAddress(self, asset_id, public_key = "", label = "", account_name = "", account_tag = ""):
+    def createAddress(self, asset_id, public_key = "", label = "", asset_pin = "", account_name = "", account_tag = ""):
 
+        if (asset_pin == ""):
+            encrypted_pin = self.genEncrypedPin().decode()
+        else:
+            encrypted_pin = self.genEncrypedPin_withPin(asset_pin).decode()
         body = {
             "asset_id": asset_id,
-            "pin": self.genEncrypedPin().decode(),
+            "pin": encrypted_pin,
             "public_key": public_key,
             "label": label,
             "account_name": account_name,
@@ -483,9 +488,12 @@ class MIXIN_API:
     """
     Delete an address by ID.
     """
-    def delAddress(self, address_id):
+    def delAddress(self, address_id, asset_pin = ""):
 
-        encrypted_pin = self.genEncrypedPin().decode()
+        if(asset_pin == ""):
+            encrypted_pin = self.genEncrypedPin().decode()
+        else:
+            encrypted_pin = self.genEncrypedPin_withPin(asset_pin).decode()
 
         body = {"pin": encrypted_pin}
 
@@ -501,10 +509,13 @@ class MIXIN_API:
     """
     Transfer of assets between Mixin Network users.
     """
-    def transferTo(self, to_user_id, to_asset_id, to_asset_amount, memo, trace_uuid=""):
+    def transferTo(self, to_user_id, to_asset_id, to_asset_amount, memo, trace_uuid="", input_pin = ""):
 
         # generate encrypted pin
-        encrypted_pin = self.genEncrypedPin()
+        if (input_pin == ""):
+            encrypted_pin = self.genEncrypedPin()
+        else:
+            encrypted_pin = self.genEncrypedPin_withPin(input_pin)
 
         body = {'asset_id': to_asset_id, 'counter_user_id': to_user_id, 'amount': str(to_asset_amount),
                 'pin': encrypted_pin.decode('utf8'), 'trace_id': trace_uuid, 'memo': memo}
