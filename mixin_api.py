@@ -243,7 +243,7 @@ class MIXIN_API:
                 auth_token = token.decode('utf8')
         r = requests.get(url, headers={"Authorization": "Bearer " + auth_token, 'Content-Type': 'application/json', 'Content-length': '0'})
         result_obj = r.json()
-        return result_obj.get("data")
+        return result_obj
 
 
 
@@ -270,11 +270,8 @@ class MIXIN_API:
             return result_obj
         if (r.status_code == 500):
             print("path: %s, body:%s"%(path, body_in_json))
-            return False
-        print("status code is:%d"%r.status_code)
-        return r.json()
-
-
+            return {"httpfailed":r.status_code}
+        return (r.json())
     """
     ============
     MESSENGER PRIVATE APIs
@@ -289,13 +286,13 @@ class MIXIN_API:
     def getMyAssets(self, auth_token=""):
 
         assets_result = self.__genNetworkGetRequest('/assets', auth_token)
-        return assets_result.get("data")
+        return assets_result
 
     """
     Read self profile.
     """
     def getMyProfile(self, auth_token):
-        return self.__genGetRequest('/me', auth_token)
+        return self.__genNetworkGetRequest('/me', auth_token)
 
     """
     ?
@@ -446,6 +443,9 @@ class MIXIN_API:
             "trace_id": trace_id,
             "memo": memo
         }
+        if trace_id == "":
+            body['trace_id'] = str(uuid.uuid1())
+
 
         return self.__genNetworkPostRequest('/withdrawals', body)
 
@@ -644,16 +644,10 @@ class MIXIN_API:
 
 
         result_json = self.__genNetworkGetRequest_snapshots("/network/snapshots", body)
-        return result_json.get('data')
+        return result_json
     def account_snapshots_before(self, offset, asset_id, limit=100):
         return self.account_snapshots(offset, asset_id, order = "DESC", limit = limit)
     def account_snapshots_after(self, offset, asset_id, limit=100):
         return self.account_snapshots(offset, asset_id, order = "ASC", limit = limit)
 
-    def find_mysnapshot_in(self, in_snapshots):
-        mysnapshots_result = []
-        for singleSnapShot in in_snapshots:
-            if "user_id" in singleSnapShot and (singleSnapShot.get("user_id") == self.client_id):
-                mysnapshots_result.append(singleSnapShot)
-        return mysnapshots_result
 
