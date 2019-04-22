@@ -10,3 +10,5 @@
 ## mixin_ws_api.py
 - This SDK base on https://github.com/myrual/mixin_client_demo/blob/master/home_of_cnb_robot.py
 - You can see Demo in ws_test.py
+
+There are two open source python wallet rely on the library. [myrual/bitcoin-cli-wallet-python](https://github.com/myrual/bitcoin-cli-wallet-python) and [myrual/pixinwallet](http://github.com/myrual/pixinwallet)
