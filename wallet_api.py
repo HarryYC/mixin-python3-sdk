@@ -120,6 +120,11 @@ class Asset(Static_Asset):
         self.public_key   = jsonInput.get("public_key")
         self.account_name = jsonInput.get("account_name")
         self.account_tag  = jsonInput.get("account_tag")
+        self.asset_key = jsonInput.get("asset_key")
+        self.price_usd = jsonInput.get("price_usd")
+        self.confirmations = jsonInput.get("confirmations")
+        self.capitalization = jsonInput.get("capitalization")
+
     def deposit_address(self):
         result_desposit = []
         if(self.public_key != ""):
@@ -270,6 +275,30 @@ class Transfer_result():
         """
         result = "Successfully transfer %s %s to %s at %s with trace id:%s, snapshot id:%s"%(self.amount, self.asset_id, self.opponent_id, self.created_at, self.trace_id, self.snapshot_id)
         return result
+
+class Transfer_Mainnet_result():
+    def __init__(self, data_dict):
+
+        self.amount       = data_dict.get("amount")
+        self.memo         = data_dict.get("memo")
+        self.snapshot_id  = data_dict.get("snapshot")
+        self.asset_id     = data_dict.get("asset_id")
+        self.type         = data_dict.get("type")
+        self.trace_id     = data_dict.get("trace_id")
+        self.opponent_key  = data_dict.get("opponent_key")
+        self.created_at   = data_dict.get("created_at")
+        self.state = data_dict.get("state")
+        self.transaction_hash = data_dict.get("transaction_hash")
+        self.snapshot_hash = data_dict.get("snapshot_hash")
+        self.snapshot_at = data_dict.get("snapshot_at")
+            
+    def __str__(self):
+        """Format: Name on the first line
+        and all grades on the second line,
+        separated by spaces.
+        """
+        result = "Successfully transfer %s %s to %s at %s with trace id:%s, snapshot id:%s, transaction hash %s, snapshot hash %s, snapshot_at %s"%(self.amount, self.asset_id, self.opponent_key, self.created_at, self.trace_id, self.snapshot_id, self.transaction_hash, self.snapshot_hash, self.snapshot_at)
+        return result
 def fetchTokenForCreateUser(body, url):
     body_in_json = json.dumps(body)
     headers = {
@@ -279,6 +308,30 @@ def fetchTokenForCreateUser(body, url):
     result_obj = r.json()
     return result_obj.get("token")
 
+def top_asset_mixin_network():
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Content-length': '0',
+    }
+    response = requests.get('https://api.mixin.one/network/assets/top', headers=headers)
+    result_obj = response.json()
+    if "data" in result_obj:
+        asset_array = result_obj.get("data")
+        return Asset_list(asset_array)
+
+
+def find_f_in_pbft(totalNodes):
+    for f in range(totalNodes):
+        if(((3*f+1) <= totalNodes) and ((3 * f + 4) > totalNodes)):
+            return f
+    return 0
+    
+def minimum_nodes_attack_mixin(totalNodes):
+    return find_f_in_pbft(totalNodes) + 1
+
+def minimum_nodes_control_mixin(totalNodes):
+    return find_f_in_pbft(totalNodes) * 2 + 1
 
 class WalletRecord():
     def __init__(self, pin, userid, session_id, pin_token, private_key):
@@ -323,7 +376,13 @@ class WalletRecord():
         transfer_result = Mixin_Wallet_API_Result(transfer_result_json, Transfer_result)
         return transfer_result
 
+    def transfer_to_mainnet(self, destination_key, asset_id, amount_tosend, memo_input, this_uuid, asset_pin_input):
+        transfer_result_json = self.mixinAPIInstance.transferTo_MainNet(destination_key, asset_id, amount_tosend, memo_input, this_uuid, asset_pin_input)
         print(transfer_result_json)
+        transfer_result = Mixin_Wallet_API_Result(transfer_result_json, Transfer_Mainnet_result)
+        return transfer_result
+
+
     def withdraw_asset_to(self, address_id, withdraw_amount, withdraw_memo, withdraw_this_uuid, withdraw_asset_pin):
         asset_withdraw_result_json = self.mixinAPIInstance.withdrawals(address_id, withdraw_amount, withdraw_memo, withdraw_this_uuid, withdraw_asset_pin)
         withdraw_result = Mixin_Wallet_API_Result(asset_withdraw_result_json, Withdrawal)
@@ -365,6 +424,10 @@ class WalletRecord():
             else:
                 break
         return mysnapshots_result
+    def find_snapshot(self, snapshot_id):
+        snapshot_json = self.mixinAPIInstance.account_snapshot(snapshot_id)
+        print(snapshot_json)
+        return
 
 def find_snapshot_of(client_id, in_snapshots):
     mysnapshots_result = []
@@ -372,7 +435,23 @@ def find_snapshot_of(client_id, in_snapshots):
         if (singleSnapShot.user_id == client_id):
             mysnapshots_result.append(singleSnapShot)
     return mysnapshots_result
+def snapshot_time_difference_now(snap_shopt):
+    diff = time.time() - iso8601.parse_date(snap_shopt.created_at).timestamp()
+    remain = (", timestamp: %s"%snap_shopt.created_at)
+    if int(diff) > 0:
+        diff_in_day = int(diff/(60 * 60 * 24))
+        if diff_in_day > 0:
+            return "Receiving records happened %s day ago"%(diff_in_day) + remain
+        diff_in_hour = int(diff/(60 * 60))
+        if diff_in_hour > 0:
+            return "Receiving records happened %s hour ago"%(diff_in_hour) + remain
 
+        diff_in_minute = int(diff/(60))
+        if diff_in_minute > 0:
+            return "Receiving records happened %s minute ago"%(diff_in_minute) + remain
+        return "Receiving records happened %s seconds ago"%(int(diff)) + remain
+    else:
+        return "synced " + remain
 def append_wallet_into_csv_file(this_wallet, file_name):
     with open(file_name, 'a', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
