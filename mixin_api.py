@@ -335,8 +335,8 @@ class MIXIN_API:
     """
     Search user by Mixin ID or Phone Number.
     """
-    def SearchUser(self, q, auth_token=""):
-        return self.__genGetRequest('/search/' + q, auth_token)
+    def SearchUser(self, q):
+        return self.__genNetworkGetRequest('/search/' + q)
 
     """
     Rotate user’s code_id.
