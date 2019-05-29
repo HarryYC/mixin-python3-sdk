@@ -330,7 +330,7 @@ class MIXIN_API:
     Get user's information by ID.
     """
     def getUserInfo(self, user_id, auth_token):
-        return self.__genGetRequest('/users/' + user_id, auth_token)
+        return self.__genNetworkGetRequest('/users/' + user_id, None, auth_token)
 
     """
     Search user by Mixin ID or Phone Number.
