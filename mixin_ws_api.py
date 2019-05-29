@@ -39,6 +39,7 @@ class MIXIN_WS_API:
         if on_data is None:
             on_data = MIXIN_WS_API.__on_data
 
+        websocket.enableTrace(True)
         self.ws = websocket.WebSocketApp("wss://blaze.mixin.one/",
                                     on_message=on_message,
                                     on_error=on_error,
@@ -97,6 +98,7 @@ class MIXIN_WS_API:
 
     @staticmethod
     def __on_close(ws):
+        print("on close")
         return
 
     """
@@ -104,7 +106,7 @@ class MIXIN_WS_API:
     """
 
     @staticmethod
-    def __on_error(error):
+    def __on_error(ws, error):
         print(error)
 
 
