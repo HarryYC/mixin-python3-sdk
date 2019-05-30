@@ -647,6 +647,22 @@ class MIXIN_API:
 
     def account_snapshot(self, snapshot_id):
         return self.__genNetworkGetRequest_snapshots('/network/snapshots/' + snapshot_id)
+    def account_snapshot_prove(self, snapshot_id):
+        path = '/network/snapshots/' + snapshot_id
+        url = self.__genUrl(path)
+        token = self.genGETJwtToken(path, "", str(uuid.uuid4()))
+        auth_token = token.decode('utf8')
+        r = requests.get(url, headers={"Authorization": "Bearer " + auth_token, 'Content-Type': 'application/json', 'Content-length': '0'})
+        finalCurlString = "curl -i --header " + "\"Authorization: Bearer " + auth_token + "\" --header \"Content-Type: application/json\" --header \"Content-length: 0\" "
+        finalCurlString += " \""
+        finalCurlString += url
+        finalCurlString += "\""
+        print(finalCurlString)
+        result_obj = r.json()
+        return (result_obj, finalCurlString)
+
+
+
     """
     Read this account snapshots of Mixin Network. Beaer token is required
     """
