@@ -54,9 +54,7 @@ class MIXIN_WS_API:
     run websocket server forever
     """
     def run(self):
-
-        while True:
-            self.ws.run_forever()
+        self.ws.run_forever()
 
     """
     ========================
