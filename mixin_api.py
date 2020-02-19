@@ -284,14 +284,14 @@ class MIXIN_API:
     """
     def getMyAssets(self, auth_token=""):
 
-        assets_result = self.__genNetworkGetRequest('/assets', auth_token)
+        assets_result = self.__genNetworkGetRequest('/assets', auth_token=auth_token)
         return assets_result
 
     """
     Read self profile.
     """
     def getMyProfile(self, auth_token):
-        return self.__genNetworkGetRequest('/me', auth_token)
+        return self.__genNetworkGetRequest('/me', auth_token=auth_token)
 
     """
     ?
@@ -682,5 +682,3 @@ class MIXIN_API:
         return self.account_snapshots(offset, asset_id, order = "DESC", limit = limit)
     def account_snapshots_after(self, offset, asset_id, limit=100):
         return self.account_snapshots(offset, asset_id, order = "ASC", limit = limit)
-
-
